@@ -1,0 +1,29 @@
+{
+  "files.associations": {
+    "*.h": "cpp",
+    "*.ino": "cpp"
+  },
+  "files.exclude": {
+    "**/.pio": true,
+    "**/.svn": true,
+    "**/.hg": true,
+    "**/CVS": true,
+    "**/.DS_Store": true,
+    "**/Thumbs.db": true
+  },
+  "C_Cpp.default.configurationProvider": "platformio.platformio-ide",
+  "C_Cpp.default.compilerPath": "",
+  "C_Cpp.default.cStandard": "c11",
+  "C_Cpp.default.cppStandard": "c++17",
+  "C_Cpp.default.intelliSenseMode": "gcc-x64",
+  "C_Cpp.default.includePath": [
+    "${workspaceFolder}/lib/Gw6205Bus/include",
+    "${workspaceFolder}/../wled/wled00",
+    "${workspaceFolder}/../wled/lib/NeoESP32RmtHI/include"
+  ],
+  "platformio-ide.useBuiltinPIOCore": true,
+  "platformio-ide.disablePIOHomeStartup": false,
+  "terminal.integrated.env.windows": {
+    "PLATFORMIO_DISABLE_PROGRESSBAR": "true"
+  }
+}

@@ -1,0 +1,265 @@
+diff --git a/wled00/bus_manager.cpp b/wled00/bus_manager.cpp
+index 6615a2e5..df27bb60 100644
+--- a/wled00/bus_manager.cpp
++++ b/wled00/bus_manager.cpp
+@@ -351,6 +351,10 @@ void BusDigital::setColorOrder(uint8_t colorOrder) {
+ // credit @willmmiles & @netmindz https://github.com/wled/WLED/pull/4056
+ std::vector<LEDType> BusDigital::getLEDTypes() {
+   return {
++    // GW6205 12-bit (custom, WledGW6205 fork). Listed first so it's the
++    // default in the UI dropdown for GW6205-only builds.
++    {TYPE_GW6205,        "D",  PSTR("GW6205 12-bit")},
++#ifndef WLED_GW6205_ONLY
+     {TYPE_WS2812_RGB,    "D",  PSTR("WS281x")},
+     {TYPE_SK6812_RGBW,   "D",  PSTR("SK6812/WS2814 RGBW")},
+     {TYPE_TM1814,        "D",  PSTR("TM1814")},
+@@ -371,6 +375,7 @@ std::vector<LEDType> BusDigital::getLEDTypes() {
+     {TYPE_LPD8806,       "2P", PSTR("LPD8806")},
+     {TYPE_LPD6803,       "2P", PSTR("LPD6803")},
+     {TYPE_P9813,         "2P", PSTR("PP9813")},
++#endif // !WLED_GW6205_ONLY
+   };
+ }
+ 
+diff --git a/wled00/bus_wrapper.h b/wled00/bus_wrapper.h
+index 0ecd4f98..c0677b15 100644
+--- a/wled00/bus_wrapper.h
++++ b/wled00/bus_wrapper.h
+@@ -5,6 +5,12 @@
+ //#define NPB_CONF_4STEP_CADENCE
+ #include "NeoPixelBus.h"
+ 
++// GW6205 12-bit LED driver (custom, added by WledGW6205 fork).
++// Provides a non-NeoPixelBus Gw6205Bus class that we plug into PolyBus.
++#if defined(ARDUINO_ARCH_ESP32)
++#include "Gw6205Bus.h"
++#endif
++
+ //Hardware SPI Pins
+ #define P_8266_HS_MOSI 13
+ #define P_8266_HS_CLK  14
+@@ -77,6 +83,9 @@
+ #define I_8266_BB_SM16825_5 48
+ 
+ /*** ESP32 Neopixel methods ***/
++// GW6205 12-bit (custom, WledGW6205 fork) — picked in the high range to
++// avoid colliding with existing or future I_32_* IDs.
++#define I_32_GW6205_3 100
+ //RGB
+ #define I_32_RN_NEO_3 1
+ #define I_32_I2_NEO_3 2
+@@ -439,6 +448,9 @@ class PolyBus {
+       case I_8266_BB_SM16825_5: (static_cast<B_8266_BB_SM16825_5*>(busPtr))->Begin(); break;
+     #endif
+     #ifdef ARDUINO_ARCH_ESP32
++      // GW6205 12-bit (custom, WledGW6205 fork)
++      case I_32_GW6205_3: (static_cast<Gw6205Bus*>(busPtr))->Begin(); break;
++      #ifndef WLED_GW6205_ONLY
+       // RMT buses
+       case I_32_RN_NEO_3: (static_cast<B_32_RN_NEO_3*>(busPtr))->Begin(); break;
+       case I_32_RN_NEO_4: (static_cast<B_32_RN_NEO_4*>(busPtr))->Begin(); break;
+@@ -473,6 +485,7 @@ class PolyBus {
+       case I_HS_LPO_3: beginDotStar<B_HS_LPO_3*>(busPtr, pins[1], -1, pins[0], -1, clock_kHz); break;
+       case I_HS_WS1_3: beginDotStar<B_HS_WS1_3*>(busPtr, pins[1], -1, pins[0], -1, clock_kHz); break;
+       case I_HS_P98_3: beginDotStar<B_HS_P98_3*>(busPtr, pins[1], -1, pins[0], -1, clock_kHz); break;
++      #endif // !WLED_GW6205_ONLY
+     #endif
+       case I_SS_DOT_3: (static_cast<B_SS_DOT_3*>(busPtr))->Begin(); break;
+       case I_SS_LPD_3: (static_cast<B_SS_LPD_3*>(busPtr))->Begin(); break;
+@@ -537,6 +550,9 @@ class PolyBus {
+       case I_8266_BB_SM16825_5: busPtr = new B_8266_BB_SM16825_5(len, pins[0]); break;
+     #endif
+     #ifdef ARDUINO_ARCH_ESP32
++      // GW6205 12-bit (custom, WledGW6205 fork)
++      case I_32_GW6205_3: busPtr = new Gw6205Bus(len, pins[0], _rmtChannel++); break;
++      #ifndef WLED_GW6205_ONLY
+       // RMT buses
+       case I_32_RN_NEO_3: busPtr = new B_32_RN_NEO_3(len, pins[0], (NeoBusChannel)_rmtChannel++); break;
+       case I_32_RN_NEO_4: busPtr = new B_32_RN_NEO_4(len, pins[0], (NeoBusChannel)_rmtChannel++); break;
+@@ -565,6 +581,7 @@ class PolyBus {
+       case I_32_I2_TM1914_3: if (_useParallelI2S) busPtr = new B_32_IP_TM1914_3(len, pins[0]); else busPtr = new B_32_I2_TM1914_3(len, pins[0]); break;
+       case I_32_I2_SM16825_5: if (_useParallelI2S) busPtr = new B_32_IP_SM16825_5(len, pins[0]); else busPtr = new B_32_I2_SM16825_5(len, pins[0]); break;
+       #endif
++      #endif // !WLED_GW6205_ONLY
+     #endif
+       // for 2-wire: pins[1] is clk, pins[0] is dat.  begin expects (len, clk, dat)
+       case I_HS_DOT_3: busPtr = new B_HS_DOT_3(len, pins[1], pins[0]); break;
+@@ -636,6 +653,9 @@ class PolyBus {
+       case I_8266_BB_SM16825_5: (static_cast<B_8266_BB_SM16825_5*>(busPtr))->Show(consistent); break;
+     #endif
+     #ifdef ARDUINO_ARCH_ESP32
++      // GW6205 12-bit (custom, WledGW6205 fork)
++      case I_32_GW6205_3: (static_cast<Gw6205Bus*>(busPtr))->Show(); break;
++      #ifndef WLED_GW6205_ONLY
+       // RMT buses
+       case I_32_RN_NEO_3: (static_cast<B_32_RN_NEO_3*>(busPtr))->Show(consistent); break;
+       case I_32_RN_NEO_4: (static_cast<B_32_RN_NEO_4*>(busPtr))->Show(consistent); break;
+@@ -664,6 +684,7 @@ class PolyBus {
+       case I_32_I2_TM1914_3: if (_useParallelI2S) (static_cast<B_32_IP_TM1914_3*>(busPtr))->Show(consistent); else (static_cast<B_32_I2_TM1914_3*>(busPtr))->Show(consistent); break;
+       case I_32_I2_SM16825_5: if (_useParallelI2S) (static_cast<B_32_IP_SM16825_5*>(busPtr))->Show(consistent); else (static_cast<B_32_I2_SM16825_5*>(busPtr))->Show(consistent); break;
+       #endif
++      #endif // !WLED_GW6205_ONLY
+     #endif
+       case I_HS_DOT_3: (static_cast<B_HS_DOT_3*>(busPtr))->Show(consistent); break;
+       case I_SS_DOT_3: (static_cast<B_SS_DOT_3*>(busPtr))->Show(consistent); break;
+@@ -732,6 +753,9 @@ class PolyBus {
+       case I_8266_BB_SM16825_5: return (static_cast<B_8266_BB_SM16825_5*>(busPtr))->CanShow(); break;
+     #endif
+     #ifdef ARDUINO_ARCH_ESP32
++      // GW6205 12-bit (custom, WledGW6205 fork)
++      case I_32_GW6205_3: return (static_cast<Gw6205Bus*>(busPtr))->canShow(); break;
++      #ifndef WLED_GW6205_ONLY
+       // RMT buses
+       case I_32_RN_NEO_3: return (static_cast<B_32_RN_NEO_3*>(busPtr))->CanShow(); break;
+       case I_32_RN_NEO_4: return (static_cast<B_32_RN_NEO_4*>(busPtr))->CanShow(); break;
+@@ -760,6 +784,7 @@ class PolyBus {
+       case I_32_I2_TM1914_3: if (_useParallelI2S) return (static_cast<B_32_IP_TM1914_3*>(busPtr))->CanShow(); else return (static_cast<B_32_I2_TM1914_3*>(busPtr))->CanShow(); break;
+       case I_32_I2_SM16825_5: if (_useParallelI2S) return (static_cast<B_32_IP_SM16825_5*>(busPtr))->CanShow(); else return (static_cast<B_32_I2_SM16825_5*>(busPtr))->CanShow(); break;
+       #endif
++      #endif // !WLED_GW6205_ONLY
+     #endif
+       case I_HS_DOT_3: return (static_cast<B_HS_DOT_3*>(busPtr))->CanShow(); break;
+       case I_SS_DOT_3: return (static_cast<B_SS_DOT_3*>(busPtr))->CanShow(); break;
+@@ -854,6 +879,11 @@ class PolyBus {
+       case I_8266_BB_SM16825_5: (static_cast<B_8266_BB_SM16825_5*>(busPtr))->SetPixelColor(pix, Rgbww80Color(col.R*257, col.G*257, col.B*257, cctWW*257, cctCW*257)); break;
+     #endif
+     #ifdef ARDUINO_ARCH_ESP32
++      // GW6205 12-bit (custom, WledGW6205 fork). The 'col' struct already
++      // has the color-order swap applied above; we pass RGB semantics and
++      // let Gw6205Bus do its own upscaling to 12-bit.
++      case I_32_GW6205_3: (static_cast<Gw6205Bus*>(busPtr))->setPixelColor(pix, col.R, col.G, col.B, 0); break;
++      #ifndef WLED_GW6205_ONLY
+       // RMT buses
+       case I_32_RN_NEO_3: (static_cast<B_32_RN_NEO_3*>(busPtr))->SetPixelColor(pix, RgbColor(col)); break;
+       case I_32_RN_NEO_4: (static_cast<B_32_RN_NEO_4*>(busPtr))->SetPixelColor(pix, col); break;
+@@ -882,6 +912,7 @@ class PolyBus {
+       case I_32_I2_TM1914_3: if (_useParallelI2S) (static_cast<B_32_IP_TM1914_3*>(busPtr))->SetPixelColor(pix, RgbColor(col)); else (static_cast<B_32_I2_TM1914_3*>(busPtr))->SetPixelColor(pix, RgbColor(col)); break;
+       case I_32_I2_SM16825_5: if (_useParallelI2S) (static_cast<B_32_IP_SM16825_5*>(busPtr))->SetPixelColor(pix, Rgbww80Color(col.R*257, col.G*257, col.B*257, cctWW*257, cctCW*257)); else (static_cast<B_32_I2_SM16825_5*>(busPtr))->SetPixelColor(pix, Rgbww80Color(col.R*257, col.G*257, col.B*257, cctWW*257, cctCW*257)); break;
+       #endif
++      #endif // !WLED_GW6205_ONLY
+     #endif
+       case I_HS_DOT_3: (static_cast<B_HS_DOT_3*>(busPtr))->SetPixelColor(pix, RgbColor(col)); break;
+       case I_SS_DOT_3: (static_cast<B_SS_DOT_3*>(busPtr))->SetPixelColor(pix, RgbColor(col)); break;
+@@ -951,6 +982,13 @@ class PolyBus {
+       case I_8266_BB_SM16825_5: { Rgbww80Color c = (static_cast<B_8266_BB_SM16825_5*>(busPtr))->GetPixelColor(pix); col = RGBW32(c.R,c.G,c.B,max(c.WW,c.CW)); } break; // will not return original W
+     #endif
+     #ifdef ARDUINO_ARCH_ESP32
++      // GW6205 12-bit (custom, WledGW6205 fork). Gw6205Bus returns a packed
++      // 0x00RRGGBB value (no white channel); decompose into RgbwColor fields.
++      case I_32_GW6205_3: {
++        uint32_t packed = (static_cast<Gw6205Bus*>(busPtr))->getPixelColor(pix);
++        col = RgbwColor((uint8_t)(packed >> 16), (uint8_t)(packed >> 8), (uint8_t)(packed), 0);
++      } break;
++      #ifndef WLED_GW6205_ONLY
+       // RMT buses
+       case I_32_RN_NEO_3: col = (static_cast<B_32_RN_NEO_3*>(busPtr))->GetPixelColor(pix); break;
+       case I_32_RN_NEO_4: col = (static_cast<B_32_RN_NEO_4*>(busPtr))->GetPixelColor(pix); break;
+@@ -979,6 +1017,7 @@ class PolyBus {
+       case I_32_I2_TM1914_3: col = (_useParallelI2S) ? (static_cast<B_32_IP_TM1914_3*>(busPtr))->GetPixelColor(pix) : (static_cast<B_32_I2_TM1914_3*>(busPtr))->GetPixelColor(pix); break;
+       case I_32_I2_SM16825_5: { Rgbww80Color c = (_useParallelI2S) ? (static_cast<B_32_IP_SM16825_5*>(busPtr))->GetPixelColor(pix) : (static_cast<B_32_I2_SM16825_5*>(busPtr))->GetPixelColor(pix); col = RGBW32(c.R/257,c.G/257,c.B/257,max(c.WW,c.CW)/257); } break; // will not return original W
+       #endif
++      #endif // !WLED_GW6205_ONLY
+     #endif
+       case I_HS_DOT_3: col = (static_cast<B_HS_DOT_3*>(busPtr))->GetPixelColor(pix); break;
+       case I_SS_DOT_3: col = (static_cast<B_SS_DOT_3*>(busPtr))->GetPixelColor(pix); break;
+@@ -1066,6 +1105,9 @@ class PolyBus {
+       case I_8266_BB_SM16825_5: delete (static_cast<B_8266_BB_SM16825_5*>(busPtr)); break;
+     #endif
+     #ifdef ARDUINO_ARCH_ESP32
++      // GW6205 12-bit (custom, WledGW6205 fork)
++      case I_32_GW6205_3: delete (static_cast<Gw6205Bus*>(busPtr)); break;
++      #ifndef WLED_GW6205_ONLY
+       // RMT buses
+       case I_32_RN_NEO_3: delete (static_cast<B_32_RN_NEO_3*>(busPtr)); break;
+       case I_32_RN_NEO_4: delete (static_cast<B_32_RN_NEO_4*>(busPtr)); break;
+@@ -1094,6 +1136,7 @@ class PolyBus {
+       case I_32_I2_TM1914_3: if (_useParallelI2S) delete (static_cast<B_32_IP_TM1914_3*>(busPtr)); else delete (static_cast<B_32_I2_TM1914_3*>(busPtr)); break;
+       case I_32_I2_SM16825_5: if (_useParallelI2S) delete (static_cast<B_32_IP_SM16825_5*>(busPtr)); else delete (static_cast<B_32_I2_SM16825_5*>(busPtr)); break;
+       #endif
++      #endif // !WLED_GW6205_ONLY
+     #endif
+       case I_HS_DOT_3: delete (static_cast<B_HS_DOT_3*>(busPtr)); break;
+       case I_SS_DOT_3: delete (static_cast<B_SS_DOT_3*>(busPtr)); break;
+@@ -1166,6 +1209,11 @@ class PolyBus {
+       case I_8266_BB_SM16825_5: size = (static_cast<B_8266_BB_SM16825_5*>(busPtr))->PixelsSize(); break;
+     #endif
+     #ifdef ARDUINO_ARCH_ESP32
++      // GW6205 12-bit (custom, WledGW6205 fork). Approximate: 36 RMT symbols
++      // * 8 bytes/symbol + 6 bytes of pixel storage per LED, plus small driver
++      // overhead.
++      case I_32_GW6205_3: size += (static_cast<Gw6205Bus*>(busPtr))->numPixels() * (36 * 8 + 6); break;
++      #ifndef WLED_GW6205_ONLY
+       // RMT buses (front + back + small system managed RMT)
+       case I_32_RN_NEO_3: size += (static_cast<B_32_RN_NEO_3*>(busPtr))->PixelsSize()*2; break;
+       case I_32_RN_NEO_4: size += (static_cast<B_32_RN_NEO_4*>(busPtr))->PixelsSize()*2; break;
+@@ -1194,6 +1242,7 @@ class PolyBus {
+       case I_32_I2_TM1914_3: size += (_useParallelI2S) ? (static_cast<B_32_IP_TM1914_3*>(busPtr))->PixelsSize()*4 : (static_cast<B_32_I2_TM1914_3*>(busPtr))->PixelsSize()*4; break;
+       case I_32_I2_SM16825_5: size += (_useParallelI2S) ? (static_cast<B_32_IP_SM16825_5*>(busPtr))->PixelsSize()*4 : (static_cast<B_32_I2_SM16825_5*>(busPtr))->PixelsSize()*4; break;
+       #endif
++      #endif // !WLED_GW6205_ONLY
+     #endif
+       case I_HS_DOT_3: size = (static_cast<B_HS_DOT_3*>(busPtr))->PixelsSize()*2; break;
+       case I_SS_DOT_3: size = (static_cast<B_SS_DOT_3*>(busPtr))->PixelsSize()*2; break;
+@@ -1250,6 +1299,10 @@ class PolyBus {
+       case I_8266_DM_2805_5   : size = (size + 2*count)*5;   break;
+       case I_8266_DM_SM16825_5: size = (size + 2*count)*2*5; break;
+     #else
++      // GW6205 12-bit (custom, WledGW6205 fork). Estimate 36 RMT symbols
++      // (8 bytes each) + 6 bytes pixel storage = 294 bytes/LED.
++      case I_32_GW6205_3    : size = count * (36 * 8 + 6);       break;
++      #ifndef WLED_GW6205_ONLY
+       // note: RMT and I2S buses use ~100 bytes of internal NPB memory each, not included here for simplicity
+       // RMT buses (1x front and 1x back buffer, does not include small RMT buffer)
+       case I_32_RN_NEO_4    : // fallthrough
+@@ -1274,6 +1327,7 @@ class PolyBus {
+       case I_32_I2_SM16825_5: size = (size + 2*count)*2;   break; // 16 bit, 5 channels
+       #endif
+       default               : size *= 2;                   break; // everything else uses 2 buffers
++      #endif // !WLED_GW6205_ONLY
+     #endif
+     }
+     return size;
+@@ -1357,6 +1411,10 @@ class PolyBus {
+ 
+       // Now determine actual bus type with the chosen offset
+       switch (busType) {
++        // GW6205 12-bit (custom, WledGW6205 fork). Always RMT, no I2S variant.
++        case TYPE_GW6205:
++          t = I_32_GW6205_3; break;
++#ifndef WLED_GW6205_ONLY
+         case TYPE_WS2812_1CH_X3:
+         case TYPE_WS2812_2CH_X3:
+         case TYPE_WS2812_RGB:
+@@ -1384,6 +1442,7 @@ class PolyBus {
+           t = I_32_RN_TM1914_3 + offset; break;
+         case TYPE_SM16825:
+           t = I_32_RN_SM16825_5 + offset; break;
++#endif // !WLED_GW6205_ONLY
+       }
+       // If using parallel I2S, set the type accordingly
+       if (_i2sChannelsAssigned == 1 && offset == 1) { // first I2S channel request, lock the type
+diff --git a/wled00/const.h b/wled00/const.h
+index e49dd290..a764f69e 100644
+--- a/wled00/const.h
++++ b/wled00/const.h
+@@ -321,6 +321,8 @@ static_assert(WLED_MAX_BUSSES <= 32, "WLED_MAX_BUSSES exceeds hard limit");
+ #define TYPE_WS2805              32            //RGB + WW + CW
+ #define TYPE_TM1914              33            //RGB
+ #define TYPE_SM16825             34            //RGB + WW + CW
++// GW6205 12-bit (custom, added by WledGW6205 fork)
++#define TYPE_GW6205              35            //GW6205 12-bit per channel, 800kHz NRZ
+ #define TYPE_DIGITAL_MAX         39            // last usable digital type
+ //"Analog" types (40-47)
+ #define TYPE_ONOFF               40            //binary output (relays etc.; NOT PWM)
+@@ -666,7 +668,11 @@ static_assert(WLED_MAX_BUSSES <= 32, "WLED_MAX_BUSSES exceeds hard limit");
+     #define DEFAULT_LED_PIN 16   // aligns with GPIO2 (D4) on Wemos D1 mini32 compatible boards (if it is unusable it will be reassigned in WS2812FX::finalizeInit())
+   #endif
+ #endif
++#ifdef WLED_GW6205_ONLY
++#define DEFAULT_LED_TYPE TYPE_GW6205
++#else
+ #define DEFAULT_LED_TYPE TYPE_WS2812_RGB
++#endif
+ #define DEFAULT_LED_COUNT 30
+ 
+ #define INTERFACE_UPDATE_COOLDOWN 1000 // time in ms to wait between websockets, alexa, and MQTT updates

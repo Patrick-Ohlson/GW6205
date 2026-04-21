@@ -1,0 +1,89 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "WLED: Build Web UI (one-time)",
+      "type": "shell",
+      "command": "npm ci && npm run build",
+      "options": {
+        "cwd": "${workspaceFolder}/../wled"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "detail": "Builds WLED's html_*.h headers from data/. Run once per upstream sync."
+    },
+    {
+      "label": "PlatformIO: Build (wled_gw6205_esp32)",
+      "type": "shell",
+      "command": "pio run -e wled_gw6205_esp32",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": ["$platformio"],
+      "detail": "Compiles WledGW6205 firmware. Run 'WLED: Build Web UI' first."
+    },
+    {
+      "label": "PlatformIO: Upload",
+      "type": "shell",
+      "command": "pio run -e wled_gw6205_esp32 -t upload",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": ["$platformio"],
+      "detail": "Builds and flashes the firmware to the connected ESP32."
+    },
+    {
+      "label": "PlatformIO: Monitor",
+      "type": "shell",
+      "command": "pio device monitor -b 115200",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "detail": "Opens serial monitor at 115200 baud."
+    },
+    {
+      "label": "PlatformIO: Clean",
+      "type": "shell",
+      "command": "pio run -e wled_gw6205_esp32 -t clean",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Apply WLED patches",
+      "type": "shell",
+      "command": "git apply ${workspaceFolder}/patches/wled-gw6205.patch",
+      "options": {
+        "cwd": "${workspaceFolder}/../wled"
+      },
+      "problemMatcher": [],
+      "detail": "Re-apply our GW6205 patches to wled/wled00/ after a fresh checkout."
+    },
+    {
+      "label": "Revert WLED patches",
+      "type": "shell",
+      "command": "git checkout wled00/const.h wled00/bus_wrapper.h wled00/bus_manager.cpp",
+      "options": {
+        "cwd": "${workspaceFolder}/../wled"
+      },
+      "problemMatcher": [],
+      "detail": "Restore wled/wled00/ to pristine upstream state (drops our patches)."
+    }
+  ]
+}

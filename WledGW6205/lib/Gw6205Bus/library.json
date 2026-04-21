@@ -1,0 +1,11 @@
+{
+  "name": "Gw6205Bus",
+  "version": "0.1.0",
+  "description": "ESP32 RMT driver for GW6205 12-bit addressable LED chipsets, designed to plug into WLED's PolyBus dispatcher.",
+  "build": {
+    "libArchive": false,
+    "flags": ["-I include"]
+  },
+  "platforms": ["espressif32"],
+  "frameworks": ["arduino"]
+}
