@@ -3,7 +3,7 @@
 A strip-down WLED fork targeting the **GW6205 12-bit addressable LED chipset**
 on ESP32. All other LED types are compiled out for flash savings.
 
-This project sits alongside the vendored `../wled/` tree and builds against
+This project sits alongside the vendored `../WLED/` tree and builds against
 its source files — we do **not** maintain a separate copy of WLED. A small
 patch file (`patches/wled-gw6205.patch`) records the in-tree edits that plug
 the GW6205 driver into WLED's `PolyBus` dispatcher.
@@ -34,18 +34,18 @@ WledGW6205/
 upstream WLED tree. We keep a local copy because PlatformIO's library
 auto-discovery is unreliable when `src_dir` lives outside `PROJECT_DIR`,
 which is exactly the situation here. `InstallPatches.bat` re-copies it
-from `../wled/lib/NeoESP32RmtHI/` after each upstream sync, so the local
+from `../WLED/lib/NeoESP32RmtHI/` after each upstream sync, so the local
 copy stays in step with whatever WLED ships.
 
 Only three files in the upstream tree are touched:
-- `wled/wled00/const.h` — adds `TYPE_GW6205 = 35`, flips `DEFAULT_LED_TYPE`
+- `WLED/wled00/const.h` — adds `TYPE_GW6205 = 35`, flips `DEFAULT_LED_TYPE`
   under `WLED_GW6205_ONLY`.
-- `wled/wled00/bus_wrapper.h` — adds GW6205 branches to the `PolyBus` switch
+- `WLED/wled00/bus_wrapper.h` — adds GW6205 branches to the `PolyBus` switch
   statements (begin, create, show, canShow, setPixelColor, getPixelColor,
   cleanup, getDataSize, memUsage, getI). All non-GW6205 ESP32 cases are
   wrapped in `#ifndef WLED_GW6205_ONLY` so the linker drops the NeoPixelBus
   template instantiations.
-- `wled/wled00/bus_manager.cpp` — adds GW6205 to `BusDigital::getLEDTypes()`
+- `WLED/wled00/bus_manager.cpp` — adds GW6205 to `BusDigital::getLEDTypes()`
   so it appears in the web-UI dropdown; the other entries are gated out.
 
 ## Building
@@ -54,7 +54,7 @@ Only three files in the upstream tree are touched:
 
 1. PlatformIO (CLI or VSCode extension)
 2. Node.js and npm (needed once to build WLED's web UI)
-3. Upstream WLED sources already at `../wled/` with the GW6205 patches applied
+3. Upstream WLED sources already at `../WLED/` with the GW6205 patches applied
 
 ### One-time UI build
 
@@ -62,7 +62,7 @@ WLED generates `html_*.h` headers from the `data/` web assets at build time.
 This only needs to run once per upstream sync:
 
 ```bash
-cd ../wled
+cd ../WLED
 npm ci
 npm run build
 cd ../WledGW6205
