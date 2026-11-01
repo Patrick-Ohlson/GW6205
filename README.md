@@ -1,5 +1,6 @@
 # WledGW6205
 *Confirmed with WLED 0.15.0-b7 release*
+
 A strip-down WLED fork targeting the **GW6205 12-bit addressable LED chipset**
 on ESP32. All other LED types are compiled out for flash savings.
 
