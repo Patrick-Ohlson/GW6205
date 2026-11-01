@@ -136,8 +136,8 @@ output.
 When WLED releases a new version, follow these steps to rebase our patches:
 
 ```bash
-# 1. From the wled/ directory, revert our patches
-cd ../wled
+# 1. From the WLED/ directory, revert our patches
+cd ../WLED
 git checkout wled00/const.h wled00/bus_wrapper.h wled00/bus_manager.cpp
 
 # 2. Pull upstream
