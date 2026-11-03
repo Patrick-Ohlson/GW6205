@@ -1,8 +1,4 @@
-# Vendored upstream WLED tree — managed by its own git repo, not part of
-# this fork. Patches we apply on top of it live in
-# WledGW6205/patches/wled-gw6205.patch and are tracked here as a unified diff.
-WLED/
-wled/
+
 
 # PlatformIO build artifacts (also covered by per-project .gitignore)
 .pio/
